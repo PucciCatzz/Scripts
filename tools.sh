@@ -74,8 +74,16 @@ git clone https://github.com/m8sec/crosslinked $TOOLS_DIR/crosslinked
 cd $TOOLS_DIR/crosslinked
 pip3 install .
 
+# Clone Trickest Wordlists
+git clone https://github.com/trickest/wordlists.git $TOOLS_DIR/wordlists
+
 # Install Osmedeus
 bash <(curl -fsSL https://public-premium-osm.s3.ap-southeast-1.amazonaws.com/2f7f17ae60a47e598d0ac206227afcd7/premium.sh)
+
+# Install DPAT (Domain Password Audit Tool)
+git clone https://github.com/clr2of8/DPAT.git $TOOLS_DIR/DPAT
+cd $TOOLS_DIR/DPAT
+pip3 install -r requirements.txt
 
 # Create TrevorSpray Script
 cat <<'EOL' > $TOOLS_DIR/trevorspray_script.sh
@@ -139,6 +147,6 @@ chmod +x $TOOLS_DIR/trevorspray_script.sh
 rm $TOOLS_DIR/TeamFiltration-v3.5.4-linux-x86_64.zip tools.sh
 
 # Display notification
-zenity --info --text='Installation complete!\n\n- Use Sublime Text with "subl" to edit codes and scripts\n- Use remmina to interact with RDP sessions\n- Use seclists for dictionaries\n- Use netexec in place of crackmapexec (internal pentest)\n- Use gobuster, dirbuster, dirb, ffuf for directory and subdomain brute-forcing\n- Use rlwrap for listening back shells with "rlwrap netcat" for better CLI\n- Use nuclei for extra automated vulnerability scanning\n- Use haiti-hash with "haiti <hash>" for identifying hashes\n- Use asnmap for identifying ASN of companies\n- Use rustscan in place of nmap for faster scanning\n- Use SploitScan to check CVE details\n- Use Meta-Detector for automated Google dorking against company domains\n- Use TeamFiltration for enumerating company emails and password spraying against O365 accounts, use Windows version as well\n- Use TrevorSpray for password spraying against O365 accounts\n- Use MFASweep against valid O365 accounts for MFA Bypass\n- Use CrossLinked to find emails against domains and check validation with TrevorSpray\n- Use TrevorSpray script to automate 3 password sprays with intervals a day\n- Use Osmedeus for automated recon and vulnerability scanning.'
+zenity --info --text='Installation complete!\n\n- Use Sublime Text with "subl" to edit codes and scripts\n- Use remmina to interact with RDP sessions\n- Use seclists for dictionaries\n- Use netexec in place of crackmapexec (internal pentest)\n- Use gobuster, dirbuster, dirb, ffuf for directory and subdomain brute-forcing\n- Use rlwrap for listening back shells with "rlwrap netcat" for better CLI\n- Use nuclei for extra automated vulnerability scanning\n- Use haiti-hash with "haiti <hash>" for identifying hashes\n- Use asnmap for identifying ASN of companies\n- Use rustscan in place of nmap for faster scanning\n- Use SploitScan to check CVE details\n- Use Meta-Detector for automated Google dorking against company domains\n- Use TeamFiltration for enumerating company emails and password spraying against O365 accounts, use Windows version as well\n- Use TrevorSpray for password spraying against O365 accounts\n- Use MFASweep against valid O365 accounts for MFA Bypass\n- Use CrossLinked to find emails against domains and check validation with TrevorSpray\n- Use TrevorSpray script to automate 3 password sprays with intervals a day\n- Use Osmedeus for automated recon and vulnerability scanning\n- Use Trickest wordlists for wordlists and dictionaries\n- Use DPAT (Domain Password Audit Tool) for domain password auditing.'
 
 echo "All tools and applications installed successfully in $TOOLS_DIR!"
