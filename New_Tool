@@ -1,0 +1,433 @@
+#!/bin/bash
+
+set -euo pipefail
+
+TOOLS_DIR="/root/Desktop/Tools"
+LOG_FILE="$TOOLS_DIR/install.log"
+
+mkdir -p "$TOOLS_DIR"
+exec > >(tee -a "$LOG_FILE") 2>&1
+
+echo "[*] Starting dropbox Kali tool installation..."
+echo "[*] Tools directory: $TOOLS_DIR"
+echo "[*] Log file: $LOG_FILE"
+
+install_apt_tools() {
+    echo "[*] Updating system..."
+    apt-get update -y
+    apt-get upgrade -y
+
+    echo "[*] Installing apt tools..."
+    apt-get install -y \
+        golang \
+        remmina \
+        seclists \
+        netexec \
+        gobuster \
+        rlwrap \
+        sublime-text \
+        ffuf \
+        amass \
+        feroxbuster \
+        proxychains4 \
+        socat \
+        jq \
+        tmux \
+        python3-pip \
+        python3-venv \
+        python3-impacket \
+        impacket-scripts \
+        ruby-full \
+        unzip \
+        git \
+        wget \
+        curl \
+        make \
+        gcc \
+        nmap
+}
+
+add_sublime_repo() {
+    echo "[*] Adding Sublime Text repository..."
+    wget -qO - https://download.sublimetext.com/sublimehq-pub.gpg | gpg --dearmor | tee /etc/apt/trusted.gpg.d/sublimehq-archive.gpg > /dev/null
+    echo "deb https://download.sublimetext.com/ apt/stable/" | tee /etc/apt/sources.list.d/sublime-text.list
+    apt-get update -y
+}
+
+install_go_tools() {
+    echo "[*] Installing Go-based tools..."
+
+    export GOPATH="/root/go"
+    export PATH="$PATH:/root/go/bin"
+
+    go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+
+    echo 'export GOPATH="/root/go"' >> /root/.bashrc
+    echo 'export PATH="$PATH:/root/go/bin"' >> /root/.bashrc
+}
+
+install_gem_tools() {
+    echo "[*] Installing Ruby gem tools..."
+    gem install haiti-hash
+}
+
+install_asnmap() {
+    echo "[*] Installing asnmap..."
+    cd "$TOOLS_DIR"
+    wget -q https://github.com/projectdiscovery/asnmap/releases/download/v1.1.0/asnmap_1.1.0_linux_amd64.zip
+    unzip -o asnmap_1.1.0_linux_amd64.zip -d "$TOOLS_DIR"
+    chmod +x "$TOOLS_DIR/asnmap"
+    mv "$TOOLS_DIR/asnmap" /usr/local/bin/asnmap
+    rm -f asnmap_1.1.0_linux_amd64.zip LICENSE README.md
+}
+
+install_rustscan() {
+    echo "[*] Installing RustScan..."
+    cd "$TOOLS_DIR"
+    wget -q https://github.com/RustScan/RustScan/releases/download/2.2.3/rustscan_2.2.3_amd64.deb
+    dpkg -i rustscan_2.2.3_amd64.deb || apt-get install -f -y
+    rm -f rustscan_2.2.3_amd64.deb
+}
+
+install_sploitscan() {
+    echo "[*] Installing SploitScan..."
+    git clone https://github.com/xaitax/SploitScan.git "$TOOLS_DIR/SploitScan" || true
+    cd "$TOOLS_DIR/SploitScan"
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install --upgrade pip
+    pip install -r requirements.txt
+    deactivate
+    chmod +x sploitscan.py
+
+    cat > /usr/local/bin/sploitscan << 'EOF'
+#!/bin/bash
+cd /root/Desktop/Tools/SploitScan
+source venv/bin/activate
+python3 sploitscan.py "$@"
+EOF
+    chmod +x /usr/local/bin/sploitscan
+}
+
+install_meta_detector() {
+    echo "[*] Installing Meta-Detector..."
+    git clone https://github.com/stolenusername/Meta-Detector.git "$TOOLS_DIR/Meta-Detector" || true
+    cd "$TOOLS_DIR/Meta-Detector"
+    go build meta-detector.go
+    chmod +x meta-detector
+    ./meta-detector -download || true
+}
+
+install_trevor_tools() {
+    echo "[*] Installing TrevorProxy and TrevorSpray..."
+    python3 -m venv "$TOOLS_DIR/trevor-venv"
+    source "$TOOLS_DIR/trevor-venv/bin/activate"
+    pip install --upgrade pip
+    pip install git+https://github.com/blacklanternsecurity/trevorproxy
+    pip install git+https://github.com/blacklanternsecurity/trevorspray
+    deactivate
+
+    cat > /usr/local/bin/trevorproxy << 'EOF'
+#!/bin/bash
+source /root/Desktop/Tools/trevor-venv/bin/activate
+trevorproxy "$@"
+EOF
+
+    cat > /usr/local/bin/trevorspray << 'EOF'
+#!/bin/bash
+source /root/Desktop/Tools/trevor-venv/bin/activate
+trevorspray "$@"
+EOF
+
+    chmod +x /usr/local/bin/trevorproxy /usr/local/bin/trevorspray
+}
+
+install_teamfiltration() {
+    echo "[*] Installing TeamFiltration..."
+    cd "$TOOLS_DIR"
+    wget -q https://github.com/Flangvik/TeamFiltration/releases/download/v3.5.4/TeamFiltration-v3.5.4-linux-x86_64.zip
+    unzip -o TeamFiltration-v3.5.4-linux-x86_64.zip -d "$TOOLS_DIR"
+    mkdir -p "$TOOLS_DIR/Spray"
+    mv -f "$TOOLS_DIR/TeamFiltration" "$TOOLS_DIR/TeamFiltrationConfig_Example.json" "$TOOLS_DIR/Spray/" || true
+    chmod +x "$TOOLS_DIR/Spray/TeamFiltration"
+    rm -f TeamFiltration-v3.5.4-linux-x86_64.zip
+}
+
+install_crosslinked() {
+    echo "[*] Installing CrossLinked..."
+    git clone https://github.com/m8sec/crosslinked "$TOOLS_DIR/crosslinked" || true
+    cd "$TOOLS_DIR/crosslinked"
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install --upgrade pip
+    pip install .
+    deactivate
+
+    cat > /usr/local/bin/crosslinked << 'EOF'
+#!/bin/bash
+cd /root/Desktop/Tools/crosslinked
+source venv/bin/activate
+crosslinked "$@"
+EOF
+    chmod +x /usr/local/bin/crosslinked
+}
+
+install_dpat() {
+    echo "[*] Installing DPAT..."
+    git clone https://github.com/clr2of8/DPAT.git "$TOOLS_DIR/DPAT" || true
+    cd "$TOOLS_DIR/DPAT"
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install --upgrade pip
+    pip install -r requirements.txt
+    deactivate
+}
+
+install_pcredz() {
+    echo "[*] Installing Pcredz..."
+    git clone https://github.com/lgandx/PCredz.git "$TOOLS_DIR/PCredz" || true
+
+    cat > /usr/local/bin/pcredz << 'EOF'
+#!/bin/bash
+python3 /root/Desktop/Tools/PCredz/Pcredz "$@"
+EOF
+    chmod +x /usr/local/bin/pcredz
+}
+
+install_bloodhound_tools() {
+    echo "[*] Installing BloodHound-related tools..."
+    apt-get install -y bloodhound bloodhound.py || true
+
+    python3 -m venv "$TOOLS_DIR/bloodhound-venv"
+    source "$TOOLS_DIR/bloodhound-venv/bin/activate"
+    pip install --upgrade pip
+    pip install bloodhound bloodhound-ce
+    deactivate
+
+    cat > /usr/local/bin/bloodhound-python-venv << 'EOF'
+#!/bin/bash
+source /root/Desktop/Tools/bloodhound-venv/bin/activate
+bloodhound-python "$@"
+EOF
+
+    chmod +x /usr/local/bin/bloodhound-python-venv
+}
+
+install_pivot_tools() {
+    echo "[*] Installing pivot tools..."
+
+    cd "$TOOLS_DIR"
+
+    echo "[*] Installing Chisel..."
+    CHISEL_VERSION="1.9.1"
+    wget -q "https://github.com/jpillora/chisel/releases/download/v${CHISEL_VERSION}/chisel_${CHISEL_VERSION}_linux_amd64.gz"
+    gunzip -f "chisel_${CHISEL_VERSION}_linux_amd64.gz"
+    chmod +x "chisel_${CHISEL_VERSION}_linux_amd64"
+    mv "chisel_${CHISEL_VERSION}_linux_amd64" /usr/local/bin/chisel
+
+    echo "[*] Installing Ligolo-ng..."
+    LIGOLO_VERSION="0.7.5"
+    wget -q "https://github.com/nicocha30/ligolo-ng/releases/download/v${LIGOLO_VERSION}/ligolo-ng_proxy_${LIGOLO_VERSION}_linux_amd64.tar.gz"
+    wget -q "https://github.com/nicocha30/ligolo-ng/releases/download/v${LIGOLO_VERSION}/ligolo-ng_agent_${LIGOLO_VERSION}_linux_amd64.tar.gz"
+
+    mkdir -p "$TOOLS_DIR/ligolo-ng/proxy" "$TOOLS_DIR/ligolo-ng/agent"
+    tar -xzf "ligolo-ng_proxy_${LIGOLO_VERSION}_linux_amd64.tar.gz" -C "$TOOLS_DIR/ligolo-ng/proxy"
+    tar -xzf "ligolo-ng_agent_${LIGOLO_VERSION}_linux_amd64.tar.gz" -C "$TOOLS_DIR/ligolo-ng/agent"
+
+    chmod +x "$TOOLS_DIR/ligolo-ng/proxy/proxy" || true
+    chmod +x "$TOOLS_DIR/ligolo-ng/agent/agent" || true
+
+    ln -sf "$TOOLS_DIR/ligolo-ng/proxy/proxy" /usr/local/bin/ligolo-proxy
+    ln -sf "$TOOLS_DIR/ligolo-ng/agent/agent" /usr/local/bin/ligolo-agent
+
+    rm -f ligolo-ng_*_linux_amd64.tar.gz
+}
+
+download_helpers() {
+    echo "[*] Downloading helper scripts and lists..."
+
+    wget -q https://github.com/carlospolop/PEASS-ng/releases/latest/download/linpeas.sh -O "$TOOLS_DIR/linpeas.sh"
+    chmod +x "$TOOLS_DIR/linpeas.sh"
+
+    wget -q https://gist.githubusercontent.com/jhaddix/86a06c5dc309d08580a018c66354a056/raw/96f4e51d96b2203f19f6381c8c545b278eaa0837/all.txt -O "$TOOLS_DIR/subdomains.txt"
+}
+
+create_tools_help() {
+    echo "[*] Creating tools-help command..."
+
+    cat > /usr/local/bin/tools-help << 'EOF'
+#!/bin/bash
+
+cat << 'HELP'
+
+==========================
+Dropbox Kali Tool Cheat Sheet
+==========================
+
+[Base / Quality of Life]
+subl
+  Purpose: Sublime Text editor for scripts, notes, and code.
+
+rlwrap
+  Purpose: Improves interactive shell usability.
+  Example: rlwrap nc -lvnp 4444
+
+tmux
+  Purpose: Terminal session management.
+
+jq
+  Purpose: Parse and format JSON output.
+
+[Remote Access]
+remmina
+  Purpose: GUI RDP/VNC/SSH client for connecting to discovered systems.
+
+[Wordlists]
+seclists
+  Purpose: Common web, DNS, username, password, and fuzzing lists.
+  Path: /usr/share/seclists
+
+[Internal / AD Testing]
+netexec
+  Purpose: SMB/LDAP/WinRM enumeration, authentication testing, and AD checks.
+  Note: Preferred replacement for crackmapexec.
+
+impacket-*
+  Purpose: AD/network protocol tooling.
+  Examples:
+    impacket-secretsdump
+    impacket-psexec
+    impacket-wmiexec
+    impacket-GetNPUsers
+    impacket-GetUserSPNs
+
+bloodhound
+  Purpose: AD attack path visualization.
+
+bloodhound-python
+  Purpose: Collect AD data for BloodHound.
+
+bloodhound-python-venv
+  Purpose: Venv-installed BloodHound Python wrapper.
+
+DPAT
+  Purpose: Domain Password Audit Tool.
+  Path: /root/Desktop/Tools/DPAT
+
+[Web / External Recon]
+gobuster
+  Purpose: Directory, DNS, and vhost brute forcing.
+
+ffuf
+  Purpose: Fast web fuzzing for directories, parameters, and vhosts.
+
+feroxbuster
+  Purpose: Recursive web content discovery.
+
+amass
+  Purpose: Deep external recon and subdomain enumeration.
+
+subfinder
+  Purpose: Passive subdomain discovery.
+
+asnmap
+  Purpose: ASN and netblock discovery for organizations.
+
+subdomains.txt
+  Purpose: Jhaddix all.txt subdomain brute-force list.
+  Path: /root/Desktop/Tools/subdomains.txt
+
+[Exploit / CVE Research]
+sploitscan
+  Purpose: CVE and exploit intelligence helper.
+
+Meta-Detector
+  Purpose: Google dork automation against company domains.
+  Path: /root/Desktop/Tools/Meta-Detector
+
+[O365 / Email / Spray Tooling - Use only when approved]
+trevorproxy
+  Purpose: Proxy support for TrevorSpray workflows.
+
+trevorspray
+  Purpose: O365/password spray testing when explicitly in scope.
+
+TeamFiltration
+  Purpose: O365/Azure recon and spray-related workflows.
+  Path: /root/Desktop/Tools/Spray/TeamFiltration
+
+crosslinked
+  Purpose: Employee/email discovery from public sources.
+
+[Credential / Packet Capture Analysis]
+pcredz
+  Purpose: Extract credentials/hashes from packet captures.
+
+haiti
+  Purpose: Identify hash types.
+
+[Pivoting / Tunneling]
+chisel
+  Purpose: HTTP reverse tunneling and SOCKS pivoting.
+
+ligolo-proxy
+  Purpose: Ligolo-ng proxy side.
+
+ligolo-agent
+  Purpose: Ligolo-ng agent side.
+
+proxychains4
+  Purpose: Route tools through SOCKS/proxy pivots.
+
+socat
+  Purpose: Port forwarding and socket relay utility.
+
+[Privilege Escalation]
+linpeas.sh
+  Purpose: Linux privilege escalation enumeration.
+  Path: /root/Desktop/Tools/linpeas.sh
+
+[Install Log]
+/root/Desktop/Tools/install.log
+  Purpose: Full installation log.
+
+HELP
+EOF
+
+    chmod +x /usr/local/bin/tools-help
+}
+
+cleanup() {
+    echo "[*] Cleaning up installer..."
+    rm -f /root/Desktop/tools.sh
+    rm -f ./tools.sh || true
+}
+
+main() {
+    add_sublime_repo
+    install_apt_tools
+    install_go_tools
+    install_gem_tools
+    install_asnmap
+    install_rustscan
+    install_sploitscan
+    install_meta_detector
+    install_trevor_tools
+    install_teamfiltration
+    install_crosslinked
+    install_dpat
+    install_pcredz
+    install_bloodhound_tools
+    install_pivot_tools
+    download_helpers
+    create_tools_help
+    updatedb || true
+    cleanup
+
+    echo ""
+    echo "[+] Installation complete."
+    echo "[+] Run tools-help anytime to view installed tools and purposes."
+    echo "[+] Log saved to: $LOG_FILE"
+}
+
+main
