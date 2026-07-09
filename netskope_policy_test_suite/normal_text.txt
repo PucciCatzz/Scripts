@@ -1,0 +1,1 @@
+This is a standard, unencrypted plain text file for policy baseline testing.
